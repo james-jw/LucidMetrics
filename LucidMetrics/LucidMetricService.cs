@@ -10,20 +10,37 @@ using Newtonsoft.Json;
 
 namespace LucidMetrics
 {
-
     public partial class LucidMetricService : ServiceBase
     {
-        Uri _collectorUri;
-        Timer _timer = new Timer();
+        private int _interval;
+        private Uri _collectorUri;
+        private Timer _timer = new Timer();
         private PerformanceCounter _cpuCounter;
         private PerformanceCounter _memoryCounter;
+        private string _hostIdentity;
 
         public LucidMetricService()
         {
             InitializeComponent();
 
-            var uriString = ConfigurationManager.AppSettings["metricCollectorUri"].ToString();
+            _hostIdentity = ConfigurationManager.AppSettings["hostIdentity"]?.ToString();
+
+            if (_hostIdentity == null)
+                throw new ArgumentNullException(nameof(_hostIdentity), "No host identity specified in appsettings");
+
+            var uriString = ConfigurationManager.AppSettings["metricCollectorUri"]?.ToString();
+
+            if (uriString == null)
+                throw new ArgumentNullException(nameof(_collectorUri), "No collector uri specified in appsettings");
+
             _collectorUri = new Uri(uriString);
+
+            
+            if(!int.TryParse(ConfigurationManager.AppSettings["interval"], out _interval))
+            {
+                _interval = 5000;
+            }
+
         }
 
         protected override void OnStart(string[] args)
@@ -37,7 +54,12 @@ namespace LucidMetrics
 
         }
 
-        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        /// <summary>
+        /// Callback to push current metrics 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private async void _timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             var metrics = new LucidHostMetrics()
             {
@@ -58,9 +80,9 @@ namespace LucidMetrics
             };
 
             var metricContent = JsonConvert.SerializeObject(metrics);
-            using(var client = new HttpClient())
+            using (var client = new HttpClient())
             {
-                client.PostAsync($"{_collectorUri}/api/v1/metrics", new StringContent(metricContent, Encoding.UTF32, "application/json"));
+                await client.PostAsync($"{_collectorUri}/api/v1/metrics", new StringContent(metricContent, Encoding.UTF32, "application/json"));
             }
         }
 
