@@ -50,8 +50,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="LucidHostMetrics.cs" />
-    <Compile Include="LucidMetric.cs" />
+    <Compile Include="Model\LucidHostMetrics.cs" />
+    <Compile Include="Model\LucidMetric.cs" />
     <Compile Include="ProjectInstaller.cs">
       <SubType>Component</SubType>
     </Compile>
